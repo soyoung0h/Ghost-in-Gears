@@ -1,3 +1,5 @@
 # Ghost-in-Gears
 
-An ongoing project utilizing SQL and Snowflake to analyze and investigate crime data. This project involves role creation, data querying, data warehousing, collaborative investigation tools and more. Join in the adventure to save the city using data and technology!
+A mystery case solved with SQL and Snowflake. Each week we got a new piece of the story (crime records, forum posts, phone records, CCTV footage) and had to load it, connect it to what we already had, and narrow down the suspects.
+
+Class project for GEN BUS 746 (Advanced SQL & Data Warehousing), UW–Madison MSBA, Spring 2024. Revisited in Nov 2026.
