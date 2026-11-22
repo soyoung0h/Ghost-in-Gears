@@ -4,7 +4,7 @@ A mystery case solved with SQL and Snowflake. Each week we got a new piece of th
 
 Class project for GEN BUS 746 (Advanced SQL & Data Warehousing), UW–Madison MSBA, Spring 2024. Revisited in Nov 2026.
 
-##Files
+## Files
 Intro SQL – crime records and victim profiles
 Advanced SQL – linking anonymous forum accounts to city officials by IP address, Time Travel, roles
 Data Modeling – phone directory and call log, victim view
@@ -14,7 +14,7 @@ Data Governance – resource monitor, timeouts, read-only role for views
 
 The data was in course S3 buckets, so it's not included here.
 
-##Nov 2026 updates
+## Nov 2026 updates
 
 Went back through the scripts and fixed a few things:
 
