@@ -1,0 +1,95 @@
+-- Set context for investigation database
+USE DATABASE investigation;
+USE SCHEMA public;
+
+-- Switch role
+USE ROLE accountadmin;
+
+-- Create new resource monitor
+CREATE OR REPLACE RESOURCE MONITOR ghosts_rm
+WITH CREDIT_QUOTA = 200
+     FREQUENCY = monthly
+     START_TIMESTAMP = immediately
+     TRIGGERS
+        ON 80 PERCENT DO NOTIFY -- notify admins
+        ON 100 PERCENT DO SUSPEND -- suspend (let queries finish)
+        ON 110 PERCENT DO SUSPEND_IMMEDIATE; -- suspend (cancel queries)
+
+-- Create warehouse
+CREATE WAREHOUSE IF NOT EXISTS ghosts_query_wh
+  WAREHOUSE_SIZE = 'SMALL'
+  AUTO_RESUME = TRUE
+  AUTO_SUSPEND = 180;
+
+-- Apply resource monitor to warehouse
+ALTER WAREHOUSE ghosts_query_wh
+SET RESOURCE_MONITOR = ghosts_rm;
+
+-- List our warehouses. (See the resource monitor field.)
+SHOW WAREHOUSES;
+
+-- Adjust statement timeout parameter
+ALTER WAREHOUSE ghosts_query_wh SET statement_timeout_in_seconds = 3600;
+
+-- Adjust statement queued timeout parameter
+ALTER WAREHOUSE ghosts_query_wh SET statement_queued_timeout_in_seconds = 900;
+
+-- Recheck the warehouse statement parameters
+SHOW PARAMETERS LIKE '%statement%' IN WAREHOUSE ghosts_query_wh;
+
+-- Switch role
+USE ROLE useradmin;
+
+-- Create new role
+CREATE OR REPLACE ROLE ghosts_query_role;
+
+-- Add role
+SET my_user = CURRENT_USER();
+GRANT ROLE ghosts_query_role TO USER identifier($my_user);
+
+-- List all roles
+SHOW ROLES;
+
+-- Switch role
+USE ROLE securityadmin;
+
+-- Grant warehouse privileges
+GRANT OPERATE, USAGE ON WAREHOUSE ghosts_query_wh TO ROLE ghosts_query_role;
+
+-- Grant database, schema, and view privileges (views only, no raw tables)
+GRANT USAGE ON DATABASE investigation TO ROLE ghosts_query_role;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE investigation TO ROLE ghosts_query_role;
+GRANT SELECT ON ALL VIEWS IN DATABASE investigation TO ROLE ghosts_query_role;
+
+-- Switch role and warehouse
+USE ROLE ghosts_query_role;
+USE WAREHOUSE ghosts_query_wh;
+
+-- Query view
+SELECT * FROM victim_detail_views;
+
+-- Alter context
+USE ROLE sysadmin;
+USE WAREHOUSE ghosts_loading_wh;
+
+-- Create new view
+CREATE OR REPLACE VIEW calls_to_victims_by_officials AS
+SELECT cv.caller_name AS caller_name,
+       cv.victim_name AS victim_name,
+       cv.directory_id AS directory_id,
+       pd.phone_number AS phone_id
+FROM phone_directory pd
+JOIN calls_to_victims cv ON pd.directory_id = cv.directory_id
+JOIN city_officials co ON co.name = cv.caller_name;
+
+-- Create new view (AI posts from officials' IPs only)
+CREATE OR REPLACE VIEW forum_posts_by_officials AS
+SELECT co.name AS official_name,
+       fa.*
+FROM forum_activities fa
+JOIN city_officials co ON fa.user_ip_address = co.ip_address
+WHERE fa.post_title LIKE '%AI%';
+
+-- Query views
+SELECT * FROM calls_to_victims_by_officials;
+SELECT * FROM forum_posts_by_officials;
